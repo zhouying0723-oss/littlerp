@@ -751,7 +751,8 @@ async function sendMessage(userText) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
+        'Authorization': 'Bearer ' + apiKey,
+        'Accept': 'text/event-stream'
       },
       body: JSON.stringify({
         model: CHAT_MODEL,
@@ -782,12 +783,16 @@ async function sendMessage(userText) {
 
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed.startsWith('data: ')) continue;
-        const data = trimmed.slice(6);
+        if (!trimmed || trimmed === ':') continue;
+        if (!trimmed.startsWith('data: ') && !trimmed.startsWith('data:')) continue;
+        const data = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed.slice(5);
         if (data === '[DONE]') continue;
         try {
           const parsed = JSON.parse(data);
-          const delta = parsed.choices?.[0]?.delta?.content;
+          // OpenAI-compatible: choices[0].delta.content
+          const delta = parsed.choices?.[0]?.delta?.content
+            || parsed.choices?.[0]?.delta?.text
+            || (parsed.delta?.text); // Anthropic fallback
           if (delta) {
             fullText += delta;
             parseAndExecuteTags(fullText);
