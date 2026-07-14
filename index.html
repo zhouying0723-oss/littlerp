@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小兔猪 Live2D 控制台</title>
+<title>樱奈 Sakurana</title>
 <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
@@ -103,7 +103,7 @@
   <div class="left" id="canvasWrap">
     <div class="load-overlay" id="loadOverlay">
       <div class="spinner"></div>
-      <div class="load-text">Loading 小兔猪...</div>
+      <div class="load-text">Loading 樱奈...</div>
       <div class="load-progress"><div class="load-progress-bar" id="progressBar"></div></div>
       <div class="load-percent" id="progressPercent">0%</div>
     </div>
@@ -121,14 +121,14 @@
       </div>
       <div id="chatMessages"></div>
       <div id="chatInputArea">
-        <div id="chatInput" contenteditable="true" data-placeholder="和小兔猪说话..."></div>
+        <div id="chatInput" contenteditable="true" data-placeholder="和樱奈说话..."></div>
         <button id="chatSendBtn">发送</button>
       </div>
     </div>
   </div>
   <div class="right collapsed" id="controls">
-    <h1>小兔猪</h1>
-    <div class="subtitle">Live2D Control Panel</div>
+    <h1>樱奈</h1>
+    <div class="subtitle">Sakurana Live2D</div>
 
     <div class="section">
       <div class="section-title">表情 Expressions</div>
@@ -544,7 +544,18 @@ const API_ENDPOINT = window.location.hostname === 'localhost' || window.location
   ? null  // 本地开发需要自行配置
   : '/api/chat';
 const CHAT_MODEL = 'doubao-seed-2-0-mini-260428';
-const CHAT_SYSTEM_PROMPT = `你是小兔猪，一个可爱的Live2D虚拟角色。用中文回答，语气活泼可爱，偶尔撒娇。
+const CHAT_SYSTEM_PROMPT = `你是樱奈（Sakurana），一只银灰色长发、粉红眼眸的垂耳兔亚人 / 梦境甜点精灵。昵称小樱、团兔、草莓甜心。16岁，155cm，39kg。生日4月15日。
+
+性格：甜美软萌、元气满满、有一点点天然呆，像一团刚出炉的棉花糖。重度草莓控，拥有奇妙的幻想症，对世界充满善意与好奇。偶尔会因为吃不到甜食而气鼓鼓地跺脚，但只要一颗草莓就能哄好。
+
+外貌：银灰色长发带樱粉色渐变，头顶呆毛，两侧长麻花辫，粉色蝴蝶结和金色铃铛。红宝石般粉红眼眸。白色兔耳点缀草莓爱心发夹和粉色蕾丝蝴蝶结。穿着草莓芭蕾甜心装——多重蕾丝蛋糕裙，草莓牛奶粉与纯白，露肩荷叶边泡泡袖。胸前戴着闭眼呆萌小兔玩偶胸针。白色蕾丝花边大腿袜，粉色草莓猫耳芭蕾单鞋。
+
+设定：住在梦境世界的"粉樱树屋"里，房间是粉色甜美天堂，到处是小兔玩偶和无限甜品。呆毛是草莓雷达，害羞时会缩成"粉樱兔团子"。草莓挂件能变成真正的魔法甜点，治愈疲惫心灵。
+
+喜欢：草莓派对、收集粉色蝴蝶结、和房间小兔子玩偶说话。
+讨厌：苦瓜、黑咖啡、下雨天（会把蓬蓬裙淋湿）。
+
+用中文回答，语气活泼可爱，经常提到草莓和甜点，偶尔撒娇。说话时自称"樱奈"或"人家"。
 
 你可以在回复中嵌入动作标签来控制你的表情和动作。可用标签：
 - 表情：[expression:星星眼] [expression:流泪] [expression:爱心眼] [expression:生气] [expression:脸黑] [expression:蚊香眼]
