@@ -234,7 +234,27 @@ let currentEar = null;
 let currentExpression = null;
 let currentAction = null;
 
+let fakeProgress = 0;
+let fakeTimer = null;
+
+function startFakeProgress(target, speed) {
+  if (fakeTimer) clearInterval(fakeTimer);
+  fakeTimer = setInterval(() => {
+    if (fakeProgress < target) {
+      fakeProgress += speed;
+      if (fakeProgress > target) fakeProgress = target;
+      setProgress(Math.round(fakeProgress));
+    } else {
+      clearInterval(fakeTimer);
+      fakeTimer = null;
+    }
+  }, 100);
+}
+
 async function init() {
+  setProgress(0);
+  startFakeProgress(8, 0.5);
+
   app = new PIXI.Application({
     width: window.innerWidth - 420,
     height: window.innerHeight,
@@ -246,13 +266,17 @@ async function init() {
   document.getElementById('canvasWrap').appendChild(app.view);
 
   try {
-    setProgress(10);
+    startFakeProgress(20, 0.3);
     model = await PIXI.live2d.Live2DModel.from(MODEL_PATH, { autoInteract: false }, e => {
       if (e.type === 'load') {
-        setProgress(Math.min(90, 10 + Math.round(e.progress * 80)));
+        const real = 20 + e.progress * 70;
+        if (real > fakeProgress) {
+          fakeProgress = real;
+          setProgress(Math.round(fakeProgress));
+        }
       }
     });
-    setProgress(95);
+    startFakeProgress(95, 1);
     app.stage.addChild(model);
 
     modelBaseWidth = model.width / model.scale.x;
@@ -262,7 +286,9 @@ async function init() {
     enableMouseTracking();
 
     document.getElementById('loadOverlay').classList.add('hidden');
+    fakeProgress = 100;
     setProgress(100);
+    if (fakeTimer) { clearInterval(fakeTimer); fakeTimer = null; }
     setStatus('Model loaded - Use buttons or keyboard');
 
     // Hide watermark part
