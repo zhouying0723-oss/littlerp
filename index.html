@@ -13,9 +13,8 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #1a1a2e; color: #e0e0e0; font-family: -apple-system, "PingFang SC", "Noto Sans SC", sans-serif; height: 100vh; overflow: hidden; }
   .container { display: flex; height: 100vh; }
-  .left { flex: 1; display: flex; flex-direction: column; position: relative; background: url('白天1.png?v=2') center center / cover no-repeat; }
-  #canvasArea { flex: 1; min-height: 0; position: relative; }
-  #canvasArea canvas { width: 100% !important; height: 100% !important; }
+  .left { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; background: url('白天1.png?v=2') center center / cover no-repeat; }
+  .left canvas { width: 100% !important; height: 100% !important; }
   .right { width: 420px; background: #16213e; border-left: 1px solid #0f3460; overflow-y: auto; padding: 20px; }
   .right::-webkit-scrollbar { width: 6px; }
   .right::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 3px; }
@@ -64,8 +63,8 @@
   .drag-hint { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #555; }
 
   /* Chat Panel */
-  #chatPanel { height: 220px; min-height: 220px; background: rgba(22,33,62,0.95); border-top: 1px solid #0f3460; display: flex; flex-direction: column; transition: height 0.3s, min-height 0.3s; }
-  #chatPanel.collapsed { height: 32px; min-height: 32px; }
+  #chatPanel { position: absolute; bottom: 0; left: 0; right: 0; height: 220px; background: rgba(22,33,62,0.95); border-top: 1px solid #0f3460; display: flex; flex-direction: column; transition: height 0.3s; z-index: 50; }
+  #chatPanel.collapsed { height: 32px; }
   #chatPanel.collapsed #chatMessages, #chatPanel.collapsed #chatInputArea { display: none; }
   #chatHeader { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #0f3460; font-size: 13px; font-weight: 600; color: #e94560; flex-shrink: 0; }
   .chat-header-actions { display: flex; gap: 8px; align-items: center; }
@@ -103,16 +102,14 @@
 <body>
 <div class="container">
   <div class="left" id="canvasWrap">
-    <div id="canvasArea">
-      <div class="load-overlay" id="loadOverlay">
-        <div class="spinner"></div>
-        <div class="load-text">Loading 小兔猪...</div>
-      </div>
-      <div class="error-overlay" id="errorOverlay">
-        <div class="error-text" id="errorText"></div>
-      </div>
-      <div class="drag-hint">Drag model to reposition / Scroll to resize</div>
+    <div class="load-overlay" id="loadOverlay">
+      <div class="spinner"></div>
+      <div class="load-text">Loading 小兔猪...</div>
     </div>
+    <div class="error-overlay" id="errorOverlay">
+      <div class="error-text" id="errorText"></div>
+    </div>
+    <div class="drag-hint">Drag model to reposition / Scroll to resize</div>
     <div id="chatPanel">
       <div id="chatHeader">
         <span>Chat</span>
@@ -123,7 +120,7 @@
       </div>
       <div id="chatMessages"></div>
       <div id="chatInputArea">
-        <input type="text" id="chatInput" placeholder="和小兔猪说话..." />
+        <input type="text" id="chatInput" placeholder="和小兔猪说话..." autocomplete="off" data-1p-ignore />
         <button id="chatSendBtn">发送</button>
       </div>
     </div>
@@ -225,6 +222,7 @@
 const MODEL_PATH = './小兔猪/小兔猪.model3.json';
 
 let app, model;
+let modelBaseWidth, modelBaseHeight;
 const toggleState = {};
 let currentEar = null;
 let currentExpression = null;
@@ -235,20 +233,19 @@ async function init() {
     width: window.innerWidth - 420,
     height: window.innerHeight,
     backgroundAlpha: 0,
-    resizeTo: document.getElementById('canvasArea'),
+    resolution: window.devicePixelRatio || 1,
+    autoDensity: true,
+    resizeTo: document.getElementById('canvasWrap'),
   });
-  document.getElementById('canvasArea').appendChild(app.view);
+  document.getElementById('canvasWrap').appendChild(app.view);
 
   try {
     model = await PIXI.live2d.Live2DModel.from(MODEL_PATH, { autoInteract: false });
     app.stage.addChild(model);
 
-    const scaleX = (app.screen.width * 0.7) / model.width;
-    const scaleY = (app.screen.height * 0.9) / model.height;
-    const scale = Math.min(scaleX, scaleY);
-    model.scale.set(scale);
-    model.x = (app.screen.width - model.width) / 2 + model.width * 0.2;
-    model.y = (app.screen.height - model.height) / 2;
+    modelBaseWidth = model.width / model.scale.x;
+    modelBaseHeight = model.height / model.scale.y;
+    resizeModel();
 
     enableMouseTracking();
 
@@ -276,14 +273,10 @@ async function init() {
       }
     });
 
-    window.addEventListener('resize', () => {
-      const sx = (app.screen.width * 0.7) / (model.width / model.scale.x);
-      const sy = (app.screen.height * 0.9) / (model.height / model.scale.y);
-      const s = Math.min(sx, sy);
-      model.scale.set(s);
-      model.x = (app.screen.width - model.width) / 2;
-      model.y = (app.screen.height - model.height) / 2;
-    });
+    window.addEventListener('resize', () => resizeModel());
+    // Re-layout when chat panel toggles
+    const chatObs = new ResizeObserver(() => resizeModel());
+    chatObs.observe(document.getElementById('chatPanel'));
   } catch (e) {
     console.error(e);
     document.getElementById('loadOverlay').classList.add('hidden');
@@ -296,8 +289,18 @@ async function init() {
   }
 }
 
+function resizeModel() {
+  if (!model || !app) return;
+  const scaleX = (app.screen.width * 0.7) / modelBaseWidth;
+  const scaleY = (app.screen.height * 0.9) / modelBaseHeight;
+  const scale = Math.min(scaleX, scaleY);
+  model.scale.set(scale);
+  model.x = (app.screen.width - modelBaseWidth * scale) / 2 + modelBaseWidth * scale * 0.2;
+  model.y = (app.screen.height - modelBaseHeight * scale) / 2;
+}
+
 function enableMouseTracking() {
-  const wrap = document.getElementById('canvasArea');
+  const wrap = document.getElementById('canvasWrap');
   wrap.addEventListener('mousemove', (e) => {
     if (!model) return;
     const rect = wrap.getBoundingClientRect();

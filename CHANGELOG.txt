@@ -14,3 +14,8 @@ v1.1.0 (2026-07-14)
 - 聊天面板可折叠，不影响模型展示
 - 输入框聚焦时键盘快捷键自动屏蔽，避免误触
 - AI 触发的动作同步更新右侧按钮 active 状态
+
+v1.1.1 (2026-07-14)
+- 修复 Retina 屏幕下模型模糊：PIXI resolution 设为 devicePixelRatio
+- 修复聊天面板折叠/展开时模型被拉伸：聊天面板改为 absolute 浮层
+- 修复输入框触发 Chrome 密码管理器弹窗：添加 autocomplete=off
