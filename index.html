@@ -15,7 +15,8 @@
   .container { display: flex; height: 100vh; }
   .left { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; background: url('白天1.png?v=2') center center / cover no-repeat; }
   .left canvas { width: 100% !important; height: 100% !important; }
-  .right { width: 420px; background: #16213e; border-left: 1px solid #0f3460; overflow-y: auto; padding: 20px; }
+  .right { width: 420px; background: #16213e; border-left: 1px solid #0f3460; overflow-y: auto; padding: 20px; transition: width 0.3s, padding 0.3s, opacity 0.3s; }
+  .right.collapsed { width: 0; padding: 0; overflow: hidden; opacity: 0; border: none; }
   .right::-webkit-scrollbar { width: 6px; }
   .right::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 3px; }
   h1 { font-size: 22px; margin-bottom: 6px; color: #e94560; }
@@ -65,6 +66,10 @@
   .error-text { font-size: 14px; color: #e94560; text-align: center; max-width: 400px; line-height: 1.6; }
   .drag-hint { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #555; }
 
+  /* Toggle button for right panel */
+  #panelToggle { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 8px; border: 1px solid #0f3460; background: rgba(22,33,62,0.85); color: #e94560; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 60; transition: all 0.2s; }
+  #panelToggle:hover { background: #0f3460; border-color: #e94560; }
+
   /* Chat Panel */
   #chatPanel { position: absolute; bottom: 0; left: 0; right: 0; height: 220px; background: rgba(22,33,62,0.95); border-top: 1px solid #0f3460; display: flex; flex-direction: column; transition: height 0.3s; z-index: 50; }
   #chatPanel.collapsed { height: 32px; }
@@ -106,6 +111,7 @@
       <div class="error-text" id="errorText"></div>
     </div>
     <div class="drag-hint">Drag model to reposition / Scroll to resize</div>
+    <button id="panelToggle" title="控制面板">⚙</button>
     <div id="chatPanel">
       <div id="chatHeader">
         <span>Chat</span>
@@ -120,7 +126,7 @@
       </div>
     </div>
   </div>
-  <div class="right" id="controls">
+  <div class="right collapsed" id="controls">
     <h1>小兔猪</h1>
     <div class="subtitle">Live2D Control Panel</div>
 
@@ -571,6 +577,15 @@ function stopLipSync() {
   setParameter('ParamMouthOpenY', 0);
   setParameter('ParamMouthForm', 0);
 }
+
+// Panel toggle
+document.getElementById('panelToggle').addEventListener('click', () => {
+  const panel = document.getElementById('controls');
+  panel.classList.toggle('collapsed');
+  const btn = document.getElementById('panelToggle');
+  btn.textContent = panel.classList.contains('collapsed') ? '⚙' : '✕';
+  setTimeout(() => resizeModel(), 350);
+});
 
 document.getElementById('chatToggleBtn').addEventListener('click', () => {
   const panel = document.getElementById('chatPanel');
