@@ -90,17 +90,7 @@
   #chatSendBtn:hover:not(:disabled) { background: #c73a52; }
 
   /* API Key Modal */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 200; }
-  .modal-overlay.show { display: flex; }
-  .modal-content { background: #16213e; border: 1px solid #0f3460; border-radius: 12px; padding: 24px; max-width: 400px; width: 90%; }
-  .modal-content h3 { color: #e94560; margin-bottom: 8px; font-size: 16px; }
-  .modal-content p { color: #888; font-size: 12px; margin-bottom: 16px; }
-  .modal-content input { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #0f3460; background: #1a1a2e; color: #e0e0e0; font-size: 13px; outline: none; margin-bottom: 16px; }
-  .modal-content input:focus { border-color: #e94560; }
-  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
-  .modal-actions button { padding: 6px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; }
-  .modal-actions .save-btn { background: #e94560; color: #fff; }
-  .modal-actions .cancel-btn { background: #0f3460; color: #e0e0e0; }
+  .modal-overlay { display: none; }
 </style>
 </head>
 <body>
@@ -120,7 +110,6 @@
       <div id="chatHeader">
         <span>Chat</span>
         <div class="chat-header-actions">
-          <button id="apiKeyBtn" title="Set API Key">🔑</button>
           <button id="chatToggleBtn" title="Toggle Chat">▼</button>
         </div>
       </div>
@@ -208,18 +197,6 @@
 
     <div class="status-bar">
       <span class="label">Status:</span> <span id="statusText">Waiting for model...</span>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="apiKeyModal">
-  <div class="modal-content">
-    <h3>API Key</h3>
-    <p>输入火山方舟 API Key 以启用聊天功能</p>
-    <input type="password" id="apiKeyInput" placeholder="API Key..." />
-    <div class="modal-actions">
-      <button class="cancel-btn" id="apiKeyCancelBtn">取消</button>
-      <button class="save-btn" id="apiKeySaveBtn">保存</button>
     </div>
   </div>
 </div>
@@ -558,7 +535,7 @@ init();
 
 // ========== Chat System ==========
 const API_ENDPOINT = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
+  ? null  // 本地开发需要自行配置
   : '/api/chat';
 const CHAT_MODEL = 'doubao-seed-2-0-mini-260428';
 const CHAT_SYSTEM_PROMPT = `你是小兔猪，一个可爱的Live2D虚拟角色。用中文回答，语气活泼可爱，偶尔撒娇。
@@ -595,26 +572,7 @@ function stopLipSync() {
   setParameter('ParamMouthForm', 0);
 }
 
-// API Key management
-function getApiKey() { return localStorage.getItem('doubao_api_key'); }
-function setApiKey(key) { localStorage.setItem('doubao_api_key', key); }
-
-function showApiKeyModal() {
-  document.getElementById('apiKeyInput').value = getApiKey() || '';
-  document.getElementById('apiKeyModal').classList.add('show');
-}
-function hideApiKeyModal() {
-  document.getElementById('apiKeyModal').classList.remove('show');
-}
-
-document.getElementById('apiKeyBtn').addEventListener('click', showApiKeyModal);
-document.getElementById('apiKeySaveBtn').addEventListener('click', () => {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  if (key) { setApiKey(key); hideApiKeyModal(); }
-});
-document.getElementById('apiKeyCancelBtn').addEventListener('click', hideApiKeyModal);
-
-// Chat toggle
+let chatHistory = [];
 document.getElementById('chatToggleBtn').addEventListener('click', () => {
   const panel = document.getElementById('chatPanel');
   const btn = document.getElementById('chatToggleBtn');
@@ -728,8 +686,7 @@ function updateChatMessage(msgEl, text) {
 }
 
 async function sendMessage(userText) {
-  const apiKey = getApiKey();
-  if (!apiKey) { showApiKeyModal(); return; }
+  if (!API_ENDPOINT) return;
   if (isStreaming) return;
 
   appendChatMessage('user', userText);
@@ -751,9 +708,7 @@ async function sendMessage(userText) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey,
-        'Accept': 'text/event-stream',
-        'X-Requested-With': 'XMLHttpRequest'
+        'Accept': 'text/event-stream'
       },
       body: JSON.stringify({
         model: CHAT_MODEL,
