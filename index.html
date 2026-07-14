@@ -82,7 +82,8 @@
   .chat-msg.ai .bubble { background: #1a1a2e; color: #e0e0e0; border: 1px solid #0f3460; border-bottom-left-radius: 2px; }
   .chat-msg.ai .typing { opacity: 0.6; }
   #chatInputArea { display: flex; padding: 8px; gap: 6px; border-top: 1px solid #0f3460; flex-shrink: 0; }
-  #chatInput { flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #0f3460; background: #1a1a2e; color: #e0e0e0; font-size: 13px; outline: none; resize: none; }
+  #chatInput { flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #0f3460; background: #1a1a2e; color: #e0e0e0; font-size: 13px; outline: none; min-height: 18px; max-height: 60px; overflow-y: auto; line-height: 1.4; word-break: break-word; }
+  #chatInput:empty::before { content: attr(data-placeholder); color: #555; pointer-events: none; }
   #chatInput:focus { border-color: #e94560; }
   #chatSendBtn { padding: 8px 16px; border-radius: 8px; border: none; background: #e94560; color: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; }
   #chatSendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -125,7 +126,7 @@
       </div>
       <div id="chatMessages"></div>
       <div id="chatInputArea">
-        <input type="text" id="chatInput" placeholder="和小兔猪说话..." autocomplete="off" data-1p-ignore data-lpignore="true" readonly onfocus="this.removeAttribute('readonly')" />
+        <div id="chatInput" contenteditable="true" data-placeholder="和小兔猪说话..."></div>
         <button id="chatSendBtn">发送</button>
       </div>
     </div>
@@ -519,7 +520,6 @@ document.querySelectorAll('.btn[data-key]').forEach(btn => {
 
 document.addEventListener('keydown', (e) => {
   if (document.activeElement === document.getElementById('chatInput')) return;
-  // Prevent default for our mapped keys
   const key = e.key === ' ' ? ' ' : e.key === 'Tab' ? 'tab' : e.key.toLowerCase();
   if (keyBtnMap[key]) {
     e.preventDefault();
@@ -765,8 +765,8 @@ async function sendMessage(userText) {
 // Chat input event handlers
 document.getElementById('chatSendBtn').addEventListener('click', () => {
   const input = document.getElementById('chatInput');
-  const text = input.value.trim();
-  if (text) { sendMessage(text); input.value = ''; }
+  const text = input.textContent.trim();
+  if (text) { sendMessage(text); input.textContent = ''; }
 });
 
 document.getElementById('chatInput').addEventListener('keydown', (e) => {
