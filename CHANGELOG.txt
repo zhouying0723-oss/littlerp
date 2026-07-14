@@ -18,4 +18,7 @@ v1.1.0 (2026-07-14)
 v1.1.1 (2026-07-14)
 - 修复 Retina 屏幕下模型模糊：PIXI resolution 设为 devicePixelRatio
 - 修复聊天面板折叠/展开时模型被拉伸：聊天面板改为 absolute 浮层
-- 修复输入框触发 Chrome 密码管理器弹窗：添加 autocomplete=off
+- 修复输入框触发 Chrome 密码管理器弹窗：添加 autocomplete=off + readonly 技巧
+
+v1.1.2 (2026-07-14)
+- Loading 页面增加进度条和百分比显示

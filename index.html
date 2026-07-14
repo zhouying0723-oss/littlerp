@@ -54,6 +54,9 @@
   .spinner { width: 48px; height: 48px; border: 4px solid #0f3460; border-top-color: #e94560; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .load-text { font-size: 14px; color: #888; }
+  .load-progress { width: 200px; height: 4px; background: #0f3460; border-radius: 2px; margin-top: 12px; overflow: hidden; }
+  .load-progress-bar { height: 100%; background: #e94560; border-radius: 2px; width: 0%; transition: width 0.3s; }
+  .load-percent { font-size: 12px; color: #e94560; margin-top: 6px; }
   .error-overlay {
     position: absolute; inset: 0; display: none; flex-direction: column;
     align-items: center; justify-content: center; background: rgba(26,26,46,0.95); z-index: 100;
@@ -105,6 +108,8 @@
     <div class="load-overlay" id="loadOverlay">
       <div class="spinner"></div>
       <div class="load-text">Loading 小兔猪...</div>
+      <div class="load-progress"><div class="load-progress-bar" id="progressBar"></div></div>
+      <div class="load-percent" id="progressPercent">0%</div>
     </div>
     <div class="error-overlay" id="errorOverlay">
       <div class="error-text" id="errorText"></div>
@@ -120,7 +125,7 @@
       </div>
       <div id="chatMessages"></div>
       <div id="chatInputArea">
-        <input type="text" id="chatInput" placeholder="和小兔猪说话..." autocomplete="off" data-1p-ignore />
+        <input type="text" id="chatInput" placeholder="和小兔猪说话..." autocomplete="off" data-1p-ignore data-lpignore="true" readonly onfocus="this.removeAttribute('readonly')" />
         <button id="chatSendBtn">发送</button>
       </div>
     </div>
@@ -240,7 +245,13 @@ async function init() {
   document.getElementById('canvasWrap').appendChild(app.view);
 
   try {
-    model = await PIXI.live2d.Live2DModel.from(MODEL_PATH, { autoInteract: false });
+    setProgress(10);
+    model = await PIXI.live2d.Live2DModel.from(MODEL_PATH, { autoInteract: false }, e => {
+      if (e.type === 'load') {
+        setProgress(Math.min(90, 10 + Math.round(e.progress * 80)));
+      }
+    });
+    setProgress(95);
     app.stage.addChild(model);
 
     modelBaseWidth = model.width / model.scale.x;
@@ -250,6 +261,7 @@ async function init() {
     enableMouseTracking();
 
     document.getElementById('loadOverlay').classList.add('hidden');
+    setProgress(100);
     setStatus('Model loaded - Use buttons or keyboard');
 
     // Hide watermark part
@@ -312,6 +324,13 @@ function enableMouseTracking() {
 
 function setStatus(text) {
   document.getElementById('statusText').textContent = text;
+}
+
+function setProgress(pct) {
+  const bar = document.getElementById('progressBar');
+  const label = document.getElementById('progressPercent');
+  if (bar) bar.style.width = pct + '%';
+  if (label) label.textContent = pct + '%';
 }
 
 function setParameter(id, value) {
