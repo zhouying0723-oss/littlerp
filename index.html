@@ -15,8 +15,8 @@
   .container { display: flex; height: 100vh; }
   .left { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; background: url('白天1.png?v=2') center center / cover no-repeat; }
   .left canvas { width: 100% !important; height: 100% !important; }
-  .right { width: 420px; background: rgba(255,240,245,0.95); border-left: 1px solid #f0b0c8; overflow-y: auto; padding: 20px; transition: width 0.3s, padding 0.3s, opacity 0.3s; }
-  .right.collapsed { width: 0; padding: 0; overflow: hidden; opacity: 0; border: none; }
+  .right { width: 380px; background: rgba(255,240,245,0.95); border-left: 1px solid #f0b0c8; overflow-y: auto; padding: 20px; position: absolute; top: 0; right: 0; bottom: 0; z-index: 55; transition: transform 0.3s, opacity 0.3s; box-shadow: -4px 0 16px rgba(224,160,184,0.15); }
+  .right.collapsed { transform: translateX(100%); padding: 20px; overflow: hidden; opacity: 0; border: none; pointer-events: none; }
   .right::-webkit-scrollbar { width: 6px; }
   .right::-webkit-scrollbar-thumb { background: #f0b0c8; border-radius: 3px; }
   h1 { font-size: 22px; margin-bottom: 6px; color: #e8607a; }
@@ -239,7 +239,7 @@ async function init() {
   startFakeProgress(8, 0.5);
 
   app = new PIXI.Application({
-    width: window.innerWidth - 420,
+    width: window.innerWidth,
     height: window.innerHeight,
     backgroundAlpha: 0,
     resolution: window.devicePixelRatio || 1,
@@ -313,11 +313,11 @@ async function init() {
 
 function resizeModel() {
   if (!model || !app) return;
-  const scaleX = (app.screen.width * 0.7) / modelBaseWidth;
+  const scaleX = (app.screen.width * 0.6) / modelBaseWidth;
   const scaleY = (app.screen.height * 0.9) / modelBaseHeight;
   const scale = Math.min(scaleX, scaleY);
   model.scale.set(scale);
-  model.x = (app.screen.width - modelBaseWidth * scale) / 2 + modelBaseWidth * scale * 0.2;
+  model.x = (app.screen.width - modelBaseWidth * scale) / 2;
   model.y = (app.screen.height - modelBaseHeight * scale) / 2;
 }
 
