@@ -20,7 +20,9 @@ v1.1.1 (2026-07-14)
 - 修复聊天面板折叠/展开时模型被拉伸：聊天面板改为 absolute 浮层
 - 修复输入框触发 Chrome 密码管理器弹窗：添加 autocomplete=off + readonly 技巧
 
-v1.2.1 (2026-07-14)
+v1.2.2 (2026-07-14)
+- 修复流式返回：解析 reasoning_content 字段，添加 reasoning_effort: minimal 加速
+- 添加 max_tokens: 1024, temperature: 0.7 优化响应速度
 - 修复进度条卡在10%：增加假进度动画，加载过程更流畅
 - 修复线上无流式返回：Nginx -> Node SSE proxy -> 火山方舟，避免 Nginx HTTPS 代理缓冲 SSE
 - 小兔猪说话时嘴巴会动（lip sync）：AI 流式回复期间嘴巴随机开合，回复结束闭合

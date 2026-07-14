@@ -752,7 +752,8 @@ async function sendMessage(userText) {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + apiKey,
-        'Accept': 'text/event-stream'
+        'Accept': 'text/event-stream',
+        'X-Requested-With': 'XMLHttpRequest'
       },
       body: JSON.stringify({
         model: CHAT_MODEL,
@@ -760,7 +761,10 @@ async function sendMessage(userText) {
           { role: 'system', content: CHAT_SYSTEM_PROMPT },
           ...chatHistory
         ],
-        stream: true
+        stream: true,
+        max_tokens: 1024,
+        temperature: 0.7,
+        reasoning_effort: 'minimal'
       })
     });
 
@@ -776,6 +780,7 @@ async function sendMessage(userText) {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+      console.log('[chat] chunk received, bytes:', value?.length);
 
       sseBuffer += decoder.decode(value, { stream: true });
       const lines = sseBuffer.split('\n');
@@ -789,15 +794,21 @@ async function sendMessage(userText) {
         if (data === '[DONE]') continue;
         try {
           const parsed = JSON.parse(data);
-          // OpenAI-compatible: choices[0].delta.content
+          // Try all possible delta content paths
           const delta = parsed.choices?.[0]?.delta?.content
+            || parsed.choices?.[0]?.delta?.reasoning_content
             || parsed.choices?.[0]?.delta?.text
-            || (parsed.delta?.text); // Anthropic fallback
+            || parsed.choices?.[0]?.message?.content
+            || parsed.delta?.text;
           if (delta) {
             fullText += delta;
             parseAndExecuteTags(fullText);
             const displayText = stripTags(fullText);
             updateChatMessage(aiMsgEl, displayText);
+          } else if (parsed.choices?.[0]?.finish_reason) {
+            // stream done
+          } else {
+            console.log('[chat] unhandled SSE data:', JSON.stringify(parsed).slice(0, 300));
           }
         } catch (e) { /* incomplete JSON, skip */ }
       }
