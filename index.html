@@ -13,8 +13,9 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #1a1a2e; color: #e0e0e0; font-family: -apple-system, "PingFang SC", "Noto Sans SC", sans-serif; height: 100vh; overflow: hidden; }
   .container { display: flex; height: 100vh; }
-  .left { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; background: url('白天1.png?v=2') center center / cover no-repeat; }
-  .left canvas { width: 100% !important; height: 100% !important; }
+  .left { flex: 1; display: flex; flex-direction: column; position: relative; background: url('白天1.png?v=2') center center / cover no-repeat; }
+  #canvasArea { flex: 1; min-height: 0; position: relative; }
+  #canvasArea canvas { width: 100% !important; height: 100% !important; }
   .right { width: 420px; background: #16213e; border-left: 1px solid #0f3460; overflow-y: auto; padding: 20px; }
   .right::-webkit-scrollbar { width: 6px; }
   .right::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 3px; }
@@ -61,19 +62,71 @@
   .error-overlay.show { display: flex; }
   .error-text { font-size: 14px; color: #e94560; text-align: center; max-width: 400px; line-height: 1.6; }
   .drag-hint { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #555; }
+
+  /* Chat Panel */
+  #chatPanel { height: 220px; min-height: 220px; background: rgba(22,33,62,0.95); border-top: 1px solid #0f3460; display: flex; flex-direction: column; transition: height 0.3s, min-height 0.3s; }
+  #chatPanel.collapsed { height: 32px; min-height: 32px; }
+  #chatPanel.collapsed #chatMessages, #chatPanel.collapsed #chatInputArea { display: none; }
+  #chatHeader { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #0f3460; font-size: 13px; font-weight: 600; color: #e94560; flex-shrink: 0; }
+  .chat-header-actions { display: flex; gap: 8px; align-items: center; }
+  .chat-header-actions button { background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 4px; }
+  #chatMessages { flex: 1; overflow-y: auto; padding: 8px 12px; font-size: 13px; line-height: 1.5; }
+  #chatMessages::-webkit-scrollbar { width: 4px; }
+  #chatMessages::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 2px; }
+  .chat-msg { margin-bottom: 8px; max-width: 80%; }
+  .chat-msg.user { margin-left: auto; text-align: right; }
+  .chat-msg .bubble { display: inline-block; padding: 6px 10px; border-radius: 10px; word-break: break-word; }
+  .chat-msg.user .bubble { background: #e94560; color: #fff; border-bottom-right-radius: 2px; }
+  .chat-msg.ai .bubble { background: #1a1a2e; color: #e0e0e0; border: 1px solid #0f3460; border-bottom-left-radius: 2px; }
+  .chat-msg.ai .typing { opacity: 0.6; }
+  #chatInputArea { display: flex; padding: 8px; gap: 6px; border-top: 1px solid #0f3460; flex-shrink: 0; }
+  #chatInput { flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #0f3460; background: #1a1a2e; color: #e0e0e0; font-size: 13px; outline: none; resize: none; }
+  #chatInput:focus { border-color: #e94560; }
+  #chatSendBtn { padding: 8px 16px; border-radius: 8px; border: none; background: #e94560; color: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  #chatSendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+  #chatSendBtn:hover:not(:disabled) { background: #c73a52; }
+
+  /* API Key Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 200; }
+  .modal-overlay.show { display: flex; }
+  .modal-content { background: #16213e; border: 1px solid #0f3460; border-radius: 12px; padding: 24px; max-width: 400px; width: 90%; }
+  .modal-content h3 { color: #e94560; margin-bottom: 8px; font-size: 16px; }
+  .modal-content p { color: #888; font-size: 12px; margin-bottom: 16px; }
+  .modal-content input { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #0f3460; background: #1a1a2e; color: #e0e0e0; font-size: 13px; outline: none; margin-bottom: 16px; }
+  .modal-content input:focus { border-color: #e94560; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .modal-actions button { padding: 6px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; }
+  .modal-actions .save-btn { background: #e94560; color: #fff; }
+  .modal-actions .cancel-btn { background: #0f3460; color: #e0e0e0; }
 </style>
 </head>
 <body>
 <div class="container">
   <div class="left" id="canvasWrap">
-    <div class="load-overlay" id="loadOverlay">
-      <div class="spinner"></div>
-      <div class="load-text">Loading 小兔猪...</div>
+    <div id="canvasArea">
+      <div class="load-overlay" id="loadOverlay">
+        <div class="spinner"></div>
+        <div class="load-text">Loading 小兔猪...</div>
+      </div>
+      <div class="error-overlay" id="errorOverlay">
+        <div class="error-text" id="errorText"></div>
+      </div>
+      <div class="drag-hint">Drag model to reposition / Scroll to resize</div>
     </div>
-    <div class="error-overlay" id="errorOverlay">
-      <div class="error-text" id="errorText"></div>
+    <div id="chatPanel">
+      <div id="chatHeader">
+        <span>Chat</span>
+        <div class="chat-header-actions">
+          <button id="apiKeyBtn" title="Set API Key">🔑</button>
+          <button id="chatToggleBtn" title="Toggle Chat">▼</button>
+        </div>
+      </div>
+      <div id="chatMessages"></div>
+      <div id="chatInputArea">
+        <input type="text" id="chatInput" placeholder="和小兔猪说话..." />
+        <button id="chatSendBtn">发送</button>
+      </div>
     </div>
-    <div class="drag-hint">Drag model to reposition / Scroll to resize</div>
   </div>
   <div class="right" id="controls">
     <h1>小兔猪</h1>
@@ -156,6 +209,18 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="apiKeyModal">
+  <div class="modal-content">
+    <h3>API Key</h3>
+    <p>输入火山方舟 API Key 以启用聊天功能</p>
+    <input type="password" id="apiKeyInput" placeholder="API Key..." />
+    <div class="modal-actions">
+      <button class="cancel-btn" id="apiKeyCancelBtn">取消</button>
+      <button class="save-btn" id="apiKeySaveBtn">保存</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const MODEL_PATH = './小兔猪/小兔猪.model3.json';
 
@@ -170,9 +235,9 @@ async function init() {
     width: window.innerWidth - 420,
     height: window.innerHeight,
     backgroundAlpha: 0,
-    resizeTo: document.getElementById('canvasWrap'),
+    resizeTo: document.getElementById('canvasArea'),
   });
-  document.getElementById('canvasWrap').appendChild(app.view);
+  document.getElementById('canvasArea').appendChild(app.view);
 
   try {
     model = await PIXI.live2d.Live2DModel.from(MODEL_PATH, { autoInteract: false });
@@ -232,7 +297,7 @@ async function init() {
 }
 
 function enableMouseTracking() {
-  const wrap = document.getElementById('canvasWrap');
+  const wrap = document.getElementById('canvasArea');
   wrap.addEventListener('mousemove', (e) => {
     if (!model) return;
     const rect = wrap.getBoundingClientRect();
@@ -431,6 +496,7 @@ document.querySelectorAll('.btn[data-key]').forEach(btn => {
 });
 
 document.addEventListener('keydown', (e) => {
+  if (document.activeElement === document.getElementById('chatInput')) return;
   // Prevent default for our mapped keys
   const key = e.key === ' ' ? ' ' : e.key === 'Tab' ? 'tab' : e.key.toLowerCase();
   if (keyBtnMap[key]) {
@@ -441,6 +507,253 @@ document.addEventListener('keydown', (e) => {
 
 // Init
 init();
+
+// ========== Chat System ==========
+const API_ENDPOINT = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
+const CHAT_MODEL = 'doubao-seed-2-0-mini-260428';
+const CHAT_SYSTEM_PROMPT = `你是小兔猪，一个可爱的Live2D虚拟角色。用中文回答，语气活泼可爱，偶尔撒娇。
+
+你可以在回复中嵌入动作标签来控制你的表情和动作。可用标签：
+- 表情：[expression:星星眼] [expression:流泪] [expression:爱心眼] [expression:生气] [expression:脸黑] [expression:蚊香眼]
+- 动作：[action:ASMR] [action:手柄手] [action:抱捧花] [action:抱玩偶] [action:拿话筒] [action:比心手]
+- 耳朵：[ear:垂耳兔] [ear:兔耳1] [ear:兔耳2] [ear:猫耳] [ear:翅耳]
+- 切换：[toggle:光环关] [toggle:头饰关] [toggle:拖尾] [toggle:翅膀] [toggle:Q版] [toggle:幼版] [toggle:无脖子] [toggle:有脖子]
+
+规则：
+1. 根据对话情感自然地使用标签，不要每条消息都堆叠标签
+2. 每种类型最多使用一个标签
+3. 不要解释标签的存在，自然地对话即可`;
+
+let chatHistory = [];
+let isStreaming = false;
+let executedTags = new Set();
+
+// API Key management
+function getApiKey() { return localStorage.getItem('doubao_api_key'); }
+function setApiKey(key) { localStorage.setItem('doubao_api_key', key); }
+
+function showApiKeyModal() {
+  document.getElementById('apiKeyInput').value = getApiKey() || '';
+  document.getElementById('apiKeyModal').classList.add('show');
+}
+function hideApiKeyModal() {
+  document.getElementById('apiKeyModal').classList.remove('show');
+}
+
+document.getElementById('apiKeyBtn').addEventListener('click', showApiKeyModal);
+document.getElementById('apiKeySaveBtn').addEventListener('click', () => {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (key) { setApiKey(key); hideApiKeyModal(); }
+});
+document.getElementById('apiKeyCancelBtn').addEventListener('click', hideApiKeyModal);
+
+// Chat toggle
+document.getElementById('chatToggleBtn').addEventListener('click', () => {
+  const panel = document.getElementById('chatPanel');
+  const btn = document.getElementById('chatToggleBtn');
+  panel.classList.toggle('collapsed');
+  btn.textContent = panel.classList.contains('collapsed') ? '▲' : '▼';
+});
+
+// Action map: tag value -> function that sets model params and updates state
+const ACTION_MAP = {
+  expression: {
+    '星星眼': () => { resetExpression(); setExpression('表情-星星眼'); currentExpression = '表情-星星眼'; },
+    '流泪': () => { resetExpression(); setExpression('表情-流泪'); currentExpression = '表情-流泪'; },
+    '爱心眼': () => { resetExpression(); setExpression('表情-爱心眼'); currentExpression = '表情-爱心眼'; },
+    '生气': () => { resetExpression(); setExpression('表情-生气'); currentExpression = '表情-生气'; },
+    '脸黑': () => { resetExpression(); setExpression('表情-脸黑'); currentExpression = '表情-脸黑'; },
+    '蚊香眼': () => { resetExpression(); setExpression('表情-蚊香眼'); currentExpression = '表情-蚊香眼'; },
+  },
+  action: {
+    'ASMR': () => { if(currentAction) currentAction.split(',').forEach(p=>setParameter(p,0)); setParameter('Param81',1); currentAction='Param81'; },
+    '手柄手': () => { if(currentAction) currentAction.split(',').forEach(p=>setParameter(p,0)); setParameter('Param84',1); currentAction='Param84'; },
+    '抱捧花': () => { if(currentAction) currentAction.split(',').forEach(p=>setParameter(p,0)); setParameter('Param85',1); setParameter('Param87',1); currentAction='Param85,Param87'; },
+    '抱玩偶': () => { if(currentAction) currentAction.split(',').forEach(p=>setParameter(p,0)); setParameter('Param85',1); currentAction='Param85'; },
+    '拿话筒': () => { if(currentAction) currentAction.split(',').forEach(p=>setParameter(p,0)); setParameter('Param82',1); currentAction='Param82'; },
+    '比心手': () => { if(currentAction) currentAction.split(',').forEach(p=>setParameter(p,0)); setParameter('Param83',1); currentAction='Param83'; },
+  },
+  ear: {
+    '垂耳兔': () => { ['Param3','Param4','Param9','Param15','Param78'].forEach(p=>setParameter(p,0)); setParameter('Param71',-1); setParameter('Param3',1); currentEar='垂耳兔'; },
+    '兔耳1': () => { ['Param3','Param4','Param9','Param15','Param78'].forEach(p=>setParameter(p,0)); setParameter('Param71',-1); setParameter('Param4',1); currentEar='兔耳1'; },
+    '兔耳2': () => { ['Param3','Param4','Param9','Param15','Param78'].forEach(p=>setParameter(p,0)); setParameter('Param71',-1); setParameter('Param78',1); currentEar='兔耳2'; },
+    '猫耳': () => { ['Param3','Param4','Param9','Param15','Param78'].forEach(p=>setParameter(p,0)); setParameter('Param71',-1); setParameter('Param9',1); currentEar='猫耳'; },
+    '翅耳': () => { ['Param3','Param4','Param9','Param15','Param78'].forEach(p=>setParameter(p,0)); setParameter('Param71',-1); setParameter('Param15',1); currentEar='翅耳'; },
+  },
+  toggle: {
+    '光环关': () => setParameter('Param79', -1),
+    '头饰关': () => { setParameter('ParamBJ6',1); setParameter('ParamBJ7',1); setParameter('ParamBJ8',1); setParameter('ParamBJ9',1); },
+    '拖尾': () => setParameter('ParamBJ4', 1),
+    '翅膀': () => setParameter('ParamBJ3', 1),
+    'Q版': () => setParameter('Param97', 1),
+    '幼版': () => setParameter('Param97', 0.5),
+    '无脖子': () => { setParameter('ParamBJ',1); setParameter('ParamBJ2',1); },
+    '有脖子': () => setParameter('ParamBJ', 1),
+  }
+};
+
+function executeChatAction(type, value) {
+  const map = ACTION_MAP[type];
+  if (map && map[value]) {
+    map[value]();
+    updateButtonStates();
+    setStatus('Chat: ' + type + ' → ' + value);
+  }
+}
+
+function updateButtonStates() {
+  document.querySelectorAll('.btn.active').forEach(b => b.classList.remove('active'));
+  if (currentExpression) {
+    const btn = document.querySelector('.btn[data-value="' + currentExpression + '"]');
+    if (btn) btn.classList.add('active');
+  }
+  if (currentAction) {
+    const btn = document.querySelector('.btn[data-param="' + currentAction + '"]');
+    if (btn) btn.classList.add('active');
+  }
+  if (currentEar) {
+    const btn = document.querySelector('.btn[data-ear="' + currentEar + '"]');
+    if (btn) btn.classList.add('active');
+  }
+  Object.keys(toggleState).forEach(key => {
+    if (toggleState[key]) {
+      const btn = document.querySelector('.btn[data-param="' + key + '"]');
+      if (btn) btn.classList.add('active');
+    }
+  });
+}
+
+function parseAndExecuteTags(text) {
+  const regex = /\[(expression|action|ear|toggle):([^\]]+)\]/g;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const tagKey = match[0];
+    if (!executedTags.has(tagKey)) {
+      executedTags.add(tagKey);
+      executeChatAction(match[1], match[2]);
+    }
+  }
+}
+
+function stripTags(text) {
+  return text.replace(/\[(expression|action|ear|toggle):[^\]]+\]/g, '').trim();
+}
+
+// Chat UI helpers
+function appendChatMessage(role, text, isTyping) {
+  const container = document.getElementById('chatMessages');
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'chat-msg ' + role;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble' + (isTyping ? ' typing' : '');
+  bubble.textContent = text || '...';
+  msgDiv.appendChild(bubble);
+  container.appendChild(msgDiv);
+  container.scrollTop = container.scrollHeight;
+  return msgDiv;
+}
+
+function updateChatMessage(msgEl, text) {
+  const bubble = msgEl.querySelector('.bubble');
+  bubble.textContent = text || '...';
+  if (text) bubble.classList.remove('typing');
+  document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+}
+
+async function sendMessage(userText) {
+  const apiKey = getApiKey();
+  if (!apiKey) { showApiKeyModal(); return; }
+  if (isStreaming) return;
+
+  appendChatMessage('user', userText);
+  chatHistory.push({ role: 'user', content: userText });
+
+  // Keep last 20 messages to avoid token overflow
+  if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+
+  isStreaming = true;
+  document.getElementById('chatSendBtn').disabled = true;
+  executedTags.clear();
+
+  const aiMsgEl = appendChatMessage('ai', '', true);
+  let fullText = '';
+
+  try {
+    const response = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: CHAT_MODEL,
+        messages: [
+          { role: 'system', content: CHAT_SYSTEM_PROMPT },
+          ...chatHistory
+        ],
+        stream: true
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error('API ' + response.status + ': ' + errText.slice(0, 200));
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let sseBuffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      sseBuffer += decoder.decode(value, { stream: true });
+      const lines = sseBuffer.split('\n');
+      sseBuffer = lines.pop();
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data: ')) continue;
+        const data = trimmed.slice(6);
+        if (data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.choices?.[0]?.delta?.content;
+          if (delta) {
+            fullText += delta;
+            parseAndExecuteTags(fullText);
+            const displayText = stripTags(fullText);
+            updateChatMessage(aiMsgEl, displayText);
+          }
+        } catch (e) { /* incomplete JSON, skip */ }
+      }
+    }
+  } catch (e) {
+    updateChatMessage(aiMsgEl, 'Error: ' + e.message);
+  }
+
+  const cleanText = stripTags(fullText);
+  chatHistory.push({ role: 'assistant', content: cleanText });
+
+  isStreaming = false;
+  document.getElementById('chatSendBtn').disabled = false;
+}
+
+// Chat input event handlers
+document.getElementById('chatSendBtn').addEventListener('click', () => {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (text) { sendMessage(text); input.value = ''; }
+});
+
+document.getElementById('chatInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    document.getElementById('chatSendBtn').click();
+  }
+  e.stopPropagation();
+});
 </script>
 </body>
 </html>
