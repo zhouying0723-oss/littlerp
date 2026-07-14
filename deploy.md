@@ -10,8 +10,8 @@
 ## 一键部署命令
 
 ```bash
-# 从本地 littlerp 目录上传（排除不需要的文件）
-rsync -avz --delete \
+# 从本地 littlerp 目录上传（排除不需要的文件，--chmod 保证 nginx 可读）
+rsync -avz --delete --chmod=D755,F644 \
   --exclude='.DS_Store' \
   --exclude='按键.txt' \
   --exclude='deploy.md' \
@@ -19,6 +19,8 @@ rsync -avz --delete \
   --exclude='插画赠图' \
   --exclude='封面+日程表' \
   --exclude='日常滤镜' \
+  --exclude='server' \
+  --exclude='训练*' \
   ~/Downloads/littlerp/ root@59.110.215.35:/var/www/littlerp/
 ```
 
@@ -37,6 +39,6 @@ ssh root@59.110.215.35 "ls -la /var/www/littlerp/"
 - .json 文件设为 UTF-8 charset
 
 ## 注意事项
-- 上传后文件属主应为 nginx:nginx，rsync 默认 root 所有，如遇权限问题: `ssh root@59.110.215.35 "chown -R nginx:nginx /var/www/littlerp/"`
+- `--chmod=D755,F644` 确保目录 755、文件 644 权限，无需再手动 chmod
 - `小兔猪/` 目录包含 Live2D 模型文件(.moc3/.model3.json 等)，必须一起上传
 - 赠图/滤镜等素材目录已排除，不需要部署到线上

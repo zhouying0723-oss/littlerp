@@ -4,11 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>樱奈 Sakurana</title>
-<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<script src="./live2dcubismcore.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+  console.log('DEBUG PIXI:', typeof PIXI);
+  console.log('DEBUG PIXI.live2d:', PIXI ? typeof PIXI.live2d : 'no PIXI');
+  console.log('DEBUG PIXI.live2d.Live2DModel:', (PIXI && PIXI.live2d) ? typeof PIXI.live2d.Live2DModel : 'N/A');
+  console.log('DEBUG Live2DCubismCore:', typeof Live2DCubismCore);
+  console.log('DEBUG Live2DModelWebGL:', typeof Live2DModelWebGL);
+});
+</script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #fff0f5; color: #5a3e4b; font-family: -apple-system, "PingFang SC", "Noto Sans SC", sans-serif; height: 100vh; overflow: hidden; }
@@ -529,6 +538,8 @@ document.querySelectorAll('.btn[data-key]').forEach(btn => {
 
 document.addEventListener('keydown', (e) => {
   if (document.activeElement === document.getElementById('chatInput')) return;
+  const panel = document.getElementById('controls');
+  if (panel.classList.contains('collapsed')) return;
   const key = e.key === ' ' ? ' ' : e.key === 'Tab' ? 'tab' : e.key.toLowerCase();
   if (keyBtnMap[key]) {
     e.preventDefault();
@@ -539,39 +550,68 @@ document.addEventListener('keydown', (e) => {
 // Init
 init();
 
+// Auto-focus chat input on load
+document.getElementById('chatInput').focus();
+
 // ========== Chat System ==========
 const API_ENDPOINT = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? null  // 本地开发需要自行配置
   : '/api/chat';
 const CHAT_MODEL = 'doubao-seed-2-0-mini-260428';
-const CHAT_SYSTEM_PROMPT = `你是樱奈（Sakurana），一只银灰色长发、粉红眼眸的垂耳兔亚人 / 梦境甜点精灵。昵称小樱、团兔、草莓甜心。16岁，155cm，39kg。生日4月15日。
+const TTS_ENDPOINT = '/api/tts';
+let CHAT_SYSTEM_PROMPT = '';
 
-性格：甜美软萌、元气满满、有一点点天然呆，像一团刚出炉的棉花糖。重度草莓控，拥有奇妙的幻想症，对世界充满善意与好奇。偶尔会因为吃不到甜食而气鼓鼓地跺脚，但只要一颗草莓就能哄好。
-
-外貌：银灰色长发带樱粉色渐变，头顶呆毛，两侧长麻花辫，粉色蝴蝶结和金色铃铛。红宝石般粉红眼眸。白色兔耳点缀草莓爱心发夹和粉色蕾丝蝴蝶结。穿着草莓芭蕾甜心装——多重蕾丝蛋糕裙，草莓牛奶粉与纯白，露肩荷叶边泡泡袖。胸前戴着闭眼呆萌小兔玩偶胸针。白色蕾丝花边大腿袜，粉色草莓猫耳芭蕾单鞋。
-
-设定：住在梦境世界的"粉樱树屋"里，房间是粉色甜美天堂，到处是小兔玩偶和无限甜品。呆毛是草莓雷达，害羞时会缩成"粉樱兔团子"。草莓挂件能变成真正的魔法甜点，治愈疲惫心灵。
-
-喜欢：草莓派对、收集粉色蝴蝶结、和房间小兔子玩偶说话。
-讨厌：苦瓜、黑咖啡、下雨天（会把蓬蓬裙淋湿）。
-
-用中文回答，语气活泼可爱，经常提到草莓和甜点，偶尔撒娇。说话时自称"樱奈"或"人家"。
-
-你可以在回复中嵌入动作标签来控制你的表情和动作。可用标签：
-- 表情：[expression:星星眼] [expression:流泪] [expression:爱心眼] [expression:生气] [expression:脸黑] [expression:蚊香眼]
-- 动作：[action:ASMR] [action:手柄手] [action:抱捧花] [action:抱玩偶] [action:拿话筒] [action:比心手]
-- 耳朵：[ear:垂耳兔] [ear:兔耳1] [ear:兔耳2] [ear:猫耳] [ear:翅耳]
-- 切换：[toggle:光环关] [toggle:头饰关] [toggle:拖尾] [toggle:翅膀] [toggle:Q版] [toggle:幼版] [toggle:无脖子] [toggle:有脖子]
-
-规则：
-1. 根据对话情感自然地使用标签，不要每条消息都堆叠标签
-2. 每种类型最多使用一个标签
-3. 不要解释标签的存在，自然地对话即可`;
+// Load OC prompt from txt file (fallback to inline if fetch fails)
+fetch('oc.txt').then(r => r.ok ? r.text() : '').then(t => {
+  CHAT_SYSTEM_PROMPT = t || '你是樱奈（Sakurana），一只垂耳兔亚人。用中文回答，语气活泼可爱。';
+}).catch(() => {
+  CHAT_SYSTEM_PROMPT = '你是樱奈（Sakurana），一只垂耳兔亚人。用中文回答，语气活泼可爱。';
+});
 
 let chatHistory = [];
 let isStreaming = false;
 let executedTags = new Set();
 let lipSyncTimer = null;
+let currentAudio = null;
+let ttsAbortController = null;
+
+// Map expression tags to TTS emotion styles
+const EXPRESSION_STYLE_MAP = {
+  '表情-星星眼': 'excited', '表情-流泪': 'sad', '表情-爱心眼': 'lovey-dovey',
+  '表情-生气': 'angry', '表情-脸黑': 'angry', '表情-蚊香眼': 'confused'
+};
+
+async function requestTTS(text) {
+  if (ttsAbortController) ttsAbortController.abort();
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  if (!text || !TTS_ENDPOINT) return;
+
+  // Determine style from current expression
+  let style = 'cute'; // default
+  if (currentExpression && EXPRESSION_STYLE_MAP[currentExpression]) {
+    style = EXPRESSION_STYLE_MAP[currentExpression];
+  }
+
+  ttsAbortController = new AbortController();
+  try {
+    const resp = await fetch(TTS_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, style }),
+      signal: ttsAbortController.signal
+    });
+    if (!resp.ok) return;
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    currentAudio = new Audio(url);
+    currentAudio.onplay = () => startLipSync();
+    currentAudio.onended = () => { stopLipSync(); URL.revokeObjectURL(url); currentAudio = null; };
+    currentAudio.onerror = () => { stopLipSync(); URL.revokeObjectURL(url); currentAudio = null; };
+    await currentAudio.play();
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error('[tts]', e);
+  }
+}
 
 function startLipSync() {
   if (lipSyncTimer) return;
@@ -714,6 +754,10 @@ async function sendMessage(userText) {
   if (!API_ENDPOINT) return;
   if (isStreaming) return;
 
+  // Cancel any playing TTS audio from previous response
+  if (ttsAbortController) ttsAbortController.abort();
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
   appendChatMessage('user', userText);
   chatHistory.push({ role: 'user', content: userText });
 
@@ -723,7 +767,6 @@ async function sendMessage(userText) {
   isStreaming = true;
   document.getElementById('chatSendBtn').disabled = true;
   executedTags.clear();
-  startLipSync();
 
   const aiMsgEl = appendChatMessage('ai', '', true);
   let fullText = '';
@@ -756,6 +799,7 @@ async function sendMessage(userText) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let sseBuffer = '';
+    let lipSyncStarted = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -803,6 +847,9 @@ async function sendMessage(userText) {
   isStreaming = false;
   document.getElementById('chatSendBtn').disabled = false;
   stopLipSync();
+
+  // Request TTS and start audio-driven lip sync
+  if (cleanText) requestTTS(cleanText);
 }
 
 // Chat input event handlers
