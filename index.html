@@ -9,15 +9,6 @@
 <script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
-<script>
-window.addEventListener('DOMContentLoaded', function() {
-  console.log('DEBUG PIXI:', typeof PIXI);
-  console.log('DEBUG PIXI.live2d:', PIXI ? typeof PIXI.live2d : 'no PIXI');
-  console.log('DEBUG PIXI.live2d.Live2DModel:', (PIXI && PIXI.live2d) ? typeof PIXI.live2d.Live2DModel : 'N/A');
-  console.log('DEBUG Live2DCubismCore:', typeof Live2DCubismCore);
-  console.log('DEBUG Live2DModelWebGL:', typeof Live2DModelWebGL);
-});
-</script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #fff0f5; color: #5a3e4b; font-family: -apple-system, "PingFang SC", "Noto Sans SC", sans-serif; height: 100vh; overflow: hidden; }
