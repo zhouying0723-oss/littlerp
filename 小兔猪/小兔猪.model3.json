@@ -1,0 +1,24 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "小兔猪.moc3",
+		"Textures": [
+			"小兔猪.8192/texture_00.png",
+			"小兔猪.8192/texture_01.png"
+		],
+		"Physics": "小兔猪.physics3.json",
+		"DisplayInfo": "小兔猪.cdi3.json"
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": []
+		},
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": []
+		}
+	]
+}

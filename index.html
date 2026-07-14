@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小兔猪 Live2D 控制台</title>
+<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; color: #e0e0e0; font-family: -apple-system, "PingFang SC", "Noto Sans SC", sans-serif; height: 100vh; overflow: hidden; }
+  .container { display: flex; height: 100vh; }
+  .left { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; background: url('白天1.png?v=2') center center / cover no-repeat; }
+  .left canvas { width: 100% !important; height: 100% !important; }
+  .right { width: 420px; background: #16213e; border-left: 1px solid #0f3460; overflow-y: auto; padding: 20px; }
+  .right::-webkit-scrollbar { width: 6px; }
+  .right::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 3px; }
+  h1 { font-size: 22px; margin-bottom: 6px; color: #e94560; }
+  .subtitle { font-size: 12px; color: #888; margin-bottom: 20px; }
+  .section { margin-bottom: 18px; }
+  .section-title { font-size: 13px; font-weight: 600; color: #e94560; margin-bottom: 8px; padding-left: 8px; border-left: 3px solid #e94560; text-transform: uppercase; letter-spacing: 1px; }
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .btn-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px 10px; border-radius: 8px; border: 1px solid #0f3460;
+    background: #1a1a2e; color: #e0e0e0; font-size: 13px; cursor: pointer;
+    transition: all 0.15s; user-select: none; position: relative; overflow: hidden;
+  }
+  .btn:hover { background: #0f3460; border-color: #e94560; }
+  .btn:active { transform: scale(0.96); }
+  .btn.active { background: #e94560; border-color: #e94560; color: #fff; }
+  .btn .key {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 20px; padding: 0 5px;
+    background: #0f3460; border-radius: 4px; font-size: 11px;
+    font-weight: 600; color: #e94560; flex-shrink: 0;
+  }
+  .btn.active .key { background: rgba(255,255,255,0.2); color: #fff; }
+  .status-bar {
+    margin-top: 16px; padding: 10px 14px; background: #1a1a2e; border-radius: 8px;
+    font-size: 12px; color: #888; border: 1px solid #0f3460;
+  }
+  .status-bar .label { color: #e94560; font-weight: 600; }
+  .load-overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; background: rgba(26,26,46,0.95);
+    z-index: 100; transition: opacity 0.5s;
+  }
+  .load-overlay.hidden { opacity: 0; pointer-events: none; }
+  .spinner { width: 48px; height: 48px; border: 4px solid #0f3460; border-top-color: #e94560; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .load-text { font-size: 14px; color: #888; }
+  .error-overlay {
+    position: absolute; inset: 0; display: none; flex-direction: column;
+    align-items: center; justify-content: center; background: rgba(26,26,46,0.95); z-index: 100;
+  }
+  .error-overlay.show { display: flex; }
+  .error-text { font-size: 14px; color: #e94560; text-align: center; max-width: 400px; line-height: 1.6; }
+  .drag-hint { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #555; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="left" id="canvasWrap">
+    <div class="load-overlay" id="loadOverlay">
+      <div class="spinner"></div>
+      <div class="load-text">Loading 小兔猪...</div>
+    </div>
+    <div class="error-overlay" id="errorOverlay">
+      <div class="error-text" id="errorText"></div>
+    </div>
+    <div class="drag-hint">Drag model to reposition / Scroll to resize</div>
+  </div>
+  <div class="right" id="controls">
+    <h1>小兔猪</h1>
+    <div class="subtitle">Live2D Control Panel</div>
+
+    <div class="section">
+      <div class="section-title">表情 Expressions</div>
+      <div class="btn-grid three" id="expressionBtns">
+        <button class="btn" data-key="1" data-action="expression" data-value="表情-星星眼"><span class="key">1</span>星星眼</button>
+        <button class="btn" data-key="2" data-action="expression" data-value="表情-流泪"><span class="key">2</span>流泪</button>
+        <button class="btn" data-key="3" data-action="expression" data-value="表情-爱心眼"><span class="key">3</span>爱心眼</button>
+        <button class="btn" data-key="4" data-action="expression" data-value="表情-生气"><span class="key">4</span>生气</button>
+        <button class="btn" data-key="5" data-action="expression" data-value="表情-脸黑"><span class="key">5</span>脸黑</button>
+        <button class="btn" data-key="6" data-action="expression" data-value="表情-蚊香眼"><span class="key">6</span>蚊香眼</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">动作 Actions</div>
+      <div class="btn-grid three" id="actionBtns">
+        <button class="btn" data-key="7" data-action="action" data-param="Param81" data-label="ASMR"><span class="key">7</span>ASMR</button>
+        <button class="btn" data-key="8" data-action="action" data-param="Param84" data-label="手柄手"><span class="key">8</span>手柄手</button>
+        <button class="btn" data-key="9" data-action="action" data-param="Param85,Param87" data-label="抱捧花"><span class="key">9</span>抱捧花</button>
+        <button class="btn" data-key="0" data-action="action" data-param="Param85" data-label="抱玩偶"><span class="key">0</span>抱玩偶</button>
+        <button class="btn" data-key="q" data-action="action" data-param="Param82" data-label="拿话筒"><span class="key">Q</span>拿话筒</button>
+        <button class="btn" data-key="w" data-action="action" data-param="Param83" data-label="比心手"><span class="key">W</span>比心手</button>
+      </div>
+      <div class="btn-grid" style="margin-top:6px">
+        <button class="btn" data-key="e" data-action="toggle" data-param="Param88" data-label="玩偶眼睛"><span class="key">E</span>玩偶眼睛切换</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">耳朵 Ears</div>
+      <div class="btn-grid three" id="earBtns">
+        <button class="btn" data-key="r" data-action="ear" data-ear="垂耳兔" data-toggle="Param3" data-base="Param71"><span class="key">R</span>垂耳兔</button>
+        <button class="btn" data-key="t" data-action="ear" data-ear="兔耳1" data-toggle="Param4" data-base="Param71"><span class="key">T</span>兔耳1</button>
+        <button class="btn" data-key="y" data-action="ear" data-ear="兔耳2" data-toggle="Param78" data-base="Param71"><span class="key">Y</span>兔耳2</button>
+        <button class="btn" data-key="u" data-action="ear" data-ear="猫耳" data-toggle="Param9" data-base="Param71"><span class="key">U</span>猫耳</button>
+        <button class="btn" data-key="i" data-action="ear" data-ear="翅耳" data-toggle="Param15" data-base="Param71"><span class="key">I</span>翅耳</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">部件 Parts</div>
+      <div class="btn-grid">
+        <button class="btn" data-key="o" data-action="toggle" data-param="Param79" data-value="-1" data-label="光环关"><span class="key">O</span>光环关</button>
+        <button class="btn" data-key="p" data-action="toggle" data-param="ParamBJ6,ParamBJ7,ParamBJ8,ParamBJ9" data-value="1" data-label="头饰关"><span class="key">P</span>头饰关</button>
+        <button class="btn" data-key="a" data-action="toggle" data-param="ParamBJ4" data-label="拖尾"><span class="key">A</span>拖尾</button>
+        <button class="btn" data-key="s" data-action="toggle" data-param="ParamBJ3" data-label="翅膀"><span class="key">S</span>翅膀</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">变形 Morph</div>
+      <div class="btn-grid">
+        <button class="btn" data-key="d" data-action="toggle" data-param="Param97" data-value="1" data-label="Q版"><span class="key">D</span>Q版</button>
+        <button class="btn" data-key="f" data-action="toggle" data-param="Param97" data-value="0.5" data-label="幼版"><span class="key">F</span>幼版</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">飞头 Floating Head</div>
+      <div class="btn-grid">
+        <button class="btn" data-key="g" data-action="toggle" data-param="ParamBJ,ParamBJ2" data-label="无脖子"><span class="key">G</span>无脖子</button>
+        <button class="btn" data-key="h" data-action="toggle" data-param="ParamBJ" data-label="有脖子"><span class="key">H</span>有脖子</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">其他 Others</div>
+      <div class="btn-grid">
+        <button class="btn" data-key="tab" data-action="reset"><span class="key">⇥</span>移除按键表情</button>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <span class="label">Status:</span> <span id="statusText">Waiting for model...</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const MODEL_PATH = './小兔猪/小兔猪.model3.json';
+
+let app, model;
+const toggleState = {};
+let currentEar = null;
+let currentExpression = null;
+let currentAction = null;
+
+async function init() {
+  app = new PIXI.Application({
+    width: window.innerWidth - 420,
+    height: window.innerHeight,
+    backgroundAlpha: 0,
+    resizeTo: document.getElementById('canvasWrap'),
+  });
+  document.getElementById('canvasWrap').appendChild(app.view);
+
+  try {
+    model = await PIXI.live2d.Live2DModel.from(MODEL_PATH, { autoInteract: false });
+    app.stage.addChild(model);
+
+    const scaleX = (app.screen.width * 0.7) / model.width;
+    const scaleY = (app.screen.height * 0.9) / model.height;
+    const scale = Math.min(scaleX, scaleY);
+    model.scale.set(scale);
+    model.x = (app.screen.width - model.width) / 2 + model.width * 0.2;
+    model.y = (app.screen.height - model.height) / 2;
+
+    enableMouseTracking();
+
+    document.getElementById('loadOverlay').classList.add('hidden');
+    setStatus('Model loaded - Use buttons or keyboard');
+
+    // Hide watermark part
+    try {
+      model.internalModel.coreModel.setPartOpacityById('Part62', 0);
+    } catch(e) {
+      const parts = model.internalModel.coreModel._model.parts;
+      for (let i = 0; i < parts.count; i++) {
+        if (parts.ids[i] === 'Part62') {
+          model.internalModel.coreModel.setPartOpacityByIndex(i, 0);
+          break;
+        }
+      }
+    }
+    app.ticker.add(() => {
+      try { model.internalModel.coreModel.setPartOpacityById('Part62', 0); } catch(e) {
+        const parts = model.internalModel.coreModel._model.parts;
+        for (let i = 0; i < parts.count; i++) {
+          if (parts.ids[i] === 'Part62') { model.internalModel.coreModel.setPartOpacityByIndex(i, 0); break; }
+        }
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      const sx = (app.screen.width * 0.7) / (model.width / model.scale.x);
+      const sy = (app.screen.height * 0.9) / (model.height / model.scale.y);
+      const s = Math.min(sx, sy);
+      model.scale.set(s);
+      model.x = (app.screen.width - model.width) / 2;
+      model.y = (app.screen.height - model.height) / 2;
+    });
+  } catch (e) {
+    console.error(e);
+    document.getElementById('loadOverlay').classList.add('hidden');
+    document.getElementById('errorOverlay').classList.add('show');
+    document.getElementById('errorText').innerHTML =
+      'Failed to load model.<br><br>Please run a local server from the <code>littlerp</code> folder:<br><br>' +
+      '<code style="background:#0f3460;padding:4px 8px;border-radius:4px;">cd ~/Downloads/littlerp && python3 -m http.server 8080</code><br><br>' +
+      'Then open <code>http://localhost:8080</code><br><br>' +
+      '<span style="color:#888;font-size:12px;">Error: ' + e.message + '</span>';
+  }
+}
+
+function enableMouseTracking() {
+  const wrap = document.getElementById('canvasWrap');
+  wrap.addEventListener('mousemove', (e) => {
+    if (!model) return;
+    const rect = wrap.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    model.focus(x * app.screen.width, y * app.screen.height);
+  });
+}
+
+function setStatus(text) {
+  document.getElementById('statusText').textContent = text;
+}
+
+function setParameter(id, value) {
+  if (!model) return;
+  try {
+    model.internalModel.coreModel.setParameterValueById(id, value);
+  } catch(e) {
+    // fallback: iterate parameters
+    const params = model.internalModel.coreModel._model.parameters;
+    for (let i = 0; i < params.count; i++) {
+      if (params.ids[i] === id) {
+        model.internalModel.coreModel.setParameterValueByIndex(i, value);
+        return;
+      }
+    }
+  }
+}
+
+function getParameter(id) {
+  if (!model) return 0;
+  try {
+    return model.internalModel.coreModel.getParameterValueById(id);
+  } catch(e) {
+    const params = model.internalModel.coreModel._model.parameters;
+    for (let i = 0; i < params.count; i++) {
+      if (params.ids[i] === id) {
+        return model.internalModel.coreModel.getParameterValueByIndex(i);
+      }
+    }
+    return 0;
+  }
+}
+
+function handleAction(btn) {
+  const action = btn.dataset.action;
+  const key = btn.dataset.key;
+
+  switch (action) {
+    case 'expression': {
+      const name = btn.dataset.value;
+      if (currentExpression === name) {
+        resetExpression();
+        currentExpression = null;
+        clearActiveInGroup('#expressionBtns');
+        setStatus('Expression cleared');
+      } else {
+        resetExpression();
+        setExpression(name);
+        currentExpression = name;
+        clearActiveInGroup('#expressionBtns');
+        btn.classList.add('active');
+        setStatus('Expression: ' + name.replace('表情-', ''));
+      }
+      break;
+    }
+    case 'action': {
+      const params = btn.dataset.param.split(',');
+      const actionKey = btn.dataset.param;
+      const isActive = currentAction === actionKey;
+      // Turn off current action first
+      if (currentAction) {
+        currentAction.split(',').forEach(p => setParameter(p, 0));
+        clearActiveInGroup('#actionBtns');
+      }
+      if (isActive) {
+        currentAction = null;
+        setStatus(btn.dataset.label + ' off');
+      } else {
+        const customVal = btn.dataset.value !== undefined ? parseFloat(btn.dataset.value) : null;
+        params.forEach(p => setParameter(p, customVal !== null ? customVal : 1));
+        currentAction = actionKey;
+        btn.classList.add('active');
+        setStatus(btn.dataset.label + ' on');
+      }
+      break;
+    }
+    case 'toggle': {
+      const params = btn.dataset.param.split(',');
+      const customVal = btn.dataset.value !== undefined ? parseFloat(btn.dataset.value) : null;
+      const stateKey = btn.dataset.param;
+      const isOn = toggleState[stateKey];
+
+      if (isOn) {
+        params.forEach(p => setParameter(p, 0));
+        toggleState[stateKey] = false;
+        btn.classList.remove('active');
+        setStatus(btn.dataset.label + ' off');
+      } else {
+        params.forEach(p => {
+          const val = customVal !== null ? customVal : 1;
+          setParameter(p, val);
+        });
+        toggleState[stateKey] = true;
+        btn.classList.add('active');
+        setStatus(btn.dataset.label + ' on');
+      }
+      break;
+    }
+    case 'ear': {
+      const ear = btn.dataset.ear;
+      const toggleParam = btn.dataset.toggle;
+      const baseParam = btn.dataset.base;
+
+      if (currentEar === ear) {
+        setParameter(toggleParam, 0);
+        setParameter(baseParam, 0);
+        currentEar = null;
+        clearActiveInGroup('#earBtns');
+        setStatus('Ears reset');
+      } else {
+        // reset all ears first
+        ['Param3','Param4','Param9','Param15','Param78'].forEach(p => setParameter(p, 0));
+        setParameter(baseParam, -1);
+        setParameter(toggleParam, 1);
+        currentEar = ear;
+        clearActiveInGroup('#earBtns');
+        btn.classList.add('active');
+        setStatus('Ears: ' + ear);
+      }
+      break;
+    }
+    case 'reset': {
+      resetAll();
+      setStatus('All effects reset');
+      break;
+    }
+  }
+}
+
+function resetExpression() {
+  // Reset expression-related params
+  ['key_7','ParamLianHei2','ParamLianHei3','ParamLianHei','ParamLianHong',
+   'ParamWenXiang','ParamXXY','ParamAXY','ParamSQ'].forEach(p => setParameter(p, 0));
+}
+
+function setExpression(name) {
+  const exprMap = {
+    '表情-星星眼': [['ParamLianHei3', -1], ['ParamXXY', 1]],
+    '表情-流泪': [['key_7', 1]],
+    '表情-爱心眼': [['ParamLianHei3', -1], ['ParamLianHong', 0.5], ['ParamAXY', 1]],
+    '表情-生气': [['ParamSQ', 1]],
+    '表情-脸黑': [['ParamLianHei2', -1], ['ParamLianHei3', -1], ['ParamLianHei', 1]],
+    '表情-蚊香眼': [['ParamLianHei3', -1], ['ParamWenXiang', 1]],
+  };
+  const params = exprMap[name];
+  if (params) params.forEach(([id, val]) => setParameter(id, val));
+}
+
+function resetAll() {
+  // Reset expression params
+  resetExpression();
+  currentExpression = null;
+  clearActiveInGroup('#expressionBtns');
+
+  // Reset all toggle params
+  Object.keys(toggleState).forEach(key => {
+    if (toggleState[key]) {
+      key.split(',').forEach(p => setParameter(p, 0));
+      toggleState[key] = false;
+    }
+  });
+  document.querySelectorAll('.btn.active').forEach(b => b.classList.remove('active'));
+
+  // Reset ears
+  ['Param3','Param4','Param9','Param15','Param78','Param71'].forEach(p => setParameter(p, 0));
+  currentEar = null;
+
+  // Reset morph
+  setParameter('Param97', 0);
+}
+
+function clearActiveInGroup(selector) {
+  document.querySelectorAll(selector + ' .btn').forEach(b => b.classList.remove('active'));
+}
+
+// Button click handlers
+document.querySelectorAll('.btn').forEach(btn => {
+  btn.addEventListener('click', () => handleAction(btn));
+});
+
+// Keyboard handlers
+const keyBtnMap = {};
+document.querySelectorAll('.btn[data-key]').forEach(btn => {
+  keyBtnMap[btn.dataset.key] = btn;
+});
+
+document.addEventListener('keydown', (e) => {
+  // Prevent default for our mapped keys
+  const key = e.key === ' ' ? ' ' : e.key === 'Tab' ? 'tab' : e.key.toLowerCase();
+  if (keyBtnMap[key]) {
+    e.preventDefault();
+    handleAction(keyBtnMap[key]);
+  }
+});
+
+// Init
+init();
+</script>
+</body>
+</html>
