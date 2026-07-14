@@ -557,7 +557,9 @@ document.addEventListener('keydown', (e) => {
 init();
 
 // ========== Chat System ==========
-const API_ENDPOINT = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
+const API_ENDPOINT = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
+  : '/api/chat';
 const CHAT_MODEL = 'doubao-seed-2-0-mini-260428';
 const CHAT_SYSTEM_PROMPT = `你是小兔猪，一个可爱的Live2D虚拟角色。用中文回答，语气活泼可爱，偶尔撒娇。
 
